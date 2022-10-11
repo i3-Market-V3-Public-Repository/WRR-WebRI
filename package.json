@@ -21,7 +21,7 @@
     "jsonrepair": "^2.2.1",
     "jwt-decode": "^3.1.2",
     "minimist": "^1.2.6",
-    "moment": "^2.29.3",
+    "moment": "^2.29.4",
     "mongodb": "^4.4.1",
     "next": "^12.1.4",
     "next-connect": "^0.12.2",
