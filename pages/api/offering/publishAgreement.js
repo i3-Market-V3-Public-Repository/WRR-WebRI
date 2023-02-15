@@ -1,0 +1,38 @@
+import { catchErrors, connector } from '/lib/server.js';
+import { getSession } from '../../../lib/session';
+
+export default catchErrors(async (req, res) => {
+    const session = await getSession(req, res);
+    const user = session.user;
+
+    if (user) {
+        const { publicKey, privateKey, dataSharingAgreement } = req.body;
+
+        // retrieve the list of agreements associated to dataSharingAgreement offering (an offering could have many agreements)
+        const agreements = await connector.getAgreementsByOffering(user.access_token, user.id_token, dataSharingAgreement.dataOfferingDescription.dataOfferingId);
+
+        // retrieve the offering associated to dataSharingAgreement
+        const offering = await connector.getFederatedOffering(user.access_token, user.id_token, dataSharingAgreement.dataOfferingDescription.dataOfferingId);
+
+        if (offering) {
+            // retrieve endpointURL from dataset distribution
+            const dataAccessEndpoint = offering.hasDataset.distribution[0].accessService.endpointURL;
+
+            if (dataAccessEndpoint) {
+                console.log('Data Access Endpoint', dataAccessEndpoint)
+                // retrieve the agreement with corresponding provider public key
+                const agreement = agreements.find(el=>el.providerPublicKey === publicKey);
+                if (agreement) {
+                    const bodyRequest = {
+                        agreementId: agreement.agreementId,
+                        providerPublicKey: publicKey,
+                        providerPrivateKey: privateKey,
+                        dataSharingAgreement
+                    };
+                    return await connector.publishDataSharing(user.access_token, user.id_token, dataAccessEndpoint, bodyRequest);
+                }
+            }
+        }
+    }
+    return null;
+});

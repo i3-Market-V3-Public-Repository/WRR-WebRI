@@ -3,7 +3,7 @@ import { Button, Card, Col, Modal } from 'react-bootstrap';
 import colors from '../../lib/colors';
 import { CheckCircle, Trash, XCircle } from 'react-bootstrap-icons';
 import { useEffect, useState } from 'react';
-import { ISOtoDate } from '../../lib/utils';
+import { ISOtoDate, qs } from '../../lib/utils';
 
 import { jweDecrypt, validateDataSharingAgreementSchema } from '@i3m/non-repudiation-library';
 import { walletApi } from '../../lib/walletApi';
@@ -335,8 +335,8 @@ export default function NotificationCard(props) {
                         senderAddress: ethereumAddress,
                         dataSharingAgreement
                     }),
-                }).then(res1 => {
-                    res1.json().then(async rawTransaction => {
+                }).then(res => {
+                    res.json().then(async rawTransaction => {
                         console.log('RawTransaction', rawTransaction);
 
                         const signTransaction = await wallet.identities.sign({ did: props.user.DID }, { type: 'Transaction', data: rawTransaction });
@@ -346,12 +346,23 @@ export default function NotificationCard(props) {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(signTransaction),
-                        }).then(res2 => {
-                            res2.json().then(deployRes => {
-                                console.log('transaction deployed', deployRes);
+                        }).then(res => {
+                            res.json().then(deployRes => {
+                                console.log('Transaction deployed', deployRes);
 
-                                // TODO add loading
-                                onDelete();
+                                // publish agreement to Data Access
+                                fetch('/api/offering/publishAgreement', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        publicKey: selectedKeyPair.publicJwk,
+                                        privateKey: selectedKeyPair.privateJwk,
+                                        dataSharingAgreement
+                                    })
+                                }).then(res => {
+                                    console.log('Agreement Published in Data Access');
+                                    onDelete();
+                                });
                             });
                         });
                     });

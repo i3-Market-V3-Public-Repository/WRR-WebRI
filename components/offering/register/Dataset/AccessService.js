@@ -17,7 +17,7 @@ export default function AccessService(props) {
                             <Col>
                                 <Form.Group controlId={eventKey + 'endpointUrl'}>
                                     <CustomLabel value="Endpoint URL" tooltip="The root location or primary endpoint of the service [a Web-resolvable IRI]" />
-                                    <Form.Control type="text" name={eventKey + 'endpointUrl'} defaultValue={endpointURL} />
+                                    <Form.Control type="text" name={eventKey + 'endpointURL'} defaultValue={endpointURL} />
                                 </Form.Group>
                             </Col>
                             <Col>
