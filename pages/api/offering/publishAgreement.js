@@ -19,14 +19,13 @@ export default catchErrors(async (req, res) => {
             const dataAccessEndpoint = offering.hasDataset.distribution[0].accessService.endpointURL;
 
             if (dataAccessEndpoint) {
-                console.log('Data Access Endpoint', dataAccessEndpoint)
                 // retrieve the agreement with corresponding provider public key
                 const agreement = agreements.find(el=>el.providerPublicKey === publicKey);
                 if (agreement) {
                     const bodyRequest = {
                         agreementId: agreement.agreementId,
-                        providerPublicKey: publicKey,
-                        providerPrivateKey: privateKey,
+                        providerPublicKey: JSON.parse(publicKey),
+                        providerPrivateKey: JSON.parse(privateKey),
                         dataSharingAgreement
                     };
                     return await connector.publishDataSharing(user.access_token, user.id_token, dataAccessEndpoint, bodyRequest);
