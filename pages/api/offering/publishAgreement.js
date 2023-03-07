@@ -22,13 +22,26 @@ export default catchErrors(async (req, res) => {
                 // retrieve the agreement with corresponding provider public key
                 const agreement = agreements.find(el=>el.providerPublicKey === publicKey);
                 if (agreement) {
-                    const bodyRequest = {
+                    const publishBodyRequest = {
                         agreementId: agreement.agreementId,
                         providerPublicKey: JSON.parse(publicKey),
                         providerPrivateKey: JSON.parse(privateKey),
                         dataSharingAgreement
                     };
-                    return await connector.publishDataSharing(user.access_token, user.id_token, dataAccessEndpoint, bodyRequest);
+
+                    // publish dataSharingAgreement to Data Access
+                    await connector.publishDataSharing(user.access_token, user.id_token, dataAccessEndpoint, publishBodyRequest);
+
+                    // TODO batch or stream url
+
+                    // register connector to Data Access API
+                    const connectorBodyRequest = {
+                        offeringId: offering.dataOfferingId,
+                        description: 'reg',
+                        url: 'http://95.211.3.244:3536',
+                        action: 'register'
+                    };
+                    return await connector.registerConnector(dataAccessEndpoint, connectorBodyRequest);
                 }
             }
         }
