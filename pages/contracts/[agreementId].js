@@ -32,6 +32,21 @@ export default function ContractPage() {
     function onTransfer() {
         // TODO call payMarketFee
         // TODO transfer data
+
+        // create data purchase request
+        fetch('/api/dataTransfer/payMarketFee', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                agreementId: 'agreementId',
+                senderAddress: 'senderAddress',
+                providerMPAddress: 'providerMPAddress',
+                consumerMPAddress: 'consumerMPAddress'
+            }
+            ),
+        }).then(r => {
+            router.back();
+        });
     }
 
     return (
