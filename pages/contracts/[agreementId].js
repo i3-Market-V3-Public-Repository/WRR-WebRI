@@ -1,11 +1,12 @@
+import { Button, Form, Modal } from 'react-bootstrap';
+import RatingInfo from '../../components/contract/RatingInfo';
+import Layout from '../../components/layout/Layout';
+import ContractParameters from '../../components/contract/ContractParameters';
 import { useRouter } from 'next/router';
 import { useData } from '../../lib/hooks';
-import Error from '../../components/layout/Error';
-import ContractParameters from '../../components/contract/ContractParameters';
-import { Button, Form, Modal } from 'react-bootstrap';
-import Layout from '../../components/layout/Layout';
-import { Loading } from '../../components/layout/Loading';
 import { useState } from 'react';
+import { Loading } from '../../components/layout/Loading';
+import Error from '../../components/layout/Error';
 
 export default function ContractPage() {
     const router = useRouter();
@@ -61,6 +62,7 @@ export default function ContractPage() {
                         <Button className="ml-2" variant="secondary" onClick={onBack}>Back</Button>
                     </div>
                     <ContractParameters {...data} disableInput isAgreement/>
+                    <RatingInfo {...data.rating} forProvider={data.offering.providerDid} onTransaction={agreementId} isAgreement/>
                 </Form>
             </Layout>
             {showModal()}

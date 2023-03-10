@@ -7,18 +7,31 @@ export default catchErrors(async (req, res) => {
     const user = session.user;
 
     if (user) {
+        const { localNodeSearch } = req.query;
+        const parsedLocalSearch = localNodeSearch ? JSON.parse(localNodeSearch) : false;
         switch (req.method) {
+
             case 'GET':
                 // if consumer only retrieve offering information
                 if (user.consumer) {
-                    const offering = await connector.getFederatedOffering(user.access_token, user.id_token, offeringId);
-                    return { ...offering, user };
+                    const offering = parsedLocalSearch
+                        ? await connector.getOffering(user.access_token, user.id_token, offeringId)
+                        : await connector.getFederatedOffering(user.access_token, user.id_token, offeringId);
+                    const providerRating = await connector.getProviderTotalRating(offering.providerDid, user.access_token, user.id_token);
+                    return {
+                        ...offering,
+                        user,
+                        providerRating: providerRating.data.totalRating
+                    };
                 }
 
                 // if provider retrieve offering, contracts and pending contracts
 
                 // offering
-                const federateOffering = await connector.getFederatedOffering(user.access_token, user.id_token, offeringId);
+                const federateOffering = parsedLocalSearch
+                    ? await connector.getOffering(user.access_token, user.id_token, offeringId)
+                    : await connector.getFederatedOffering(user.access_token, user.id_token, offeringId);
+                const providerRating = await connector.getProviderTotalRating(federateOffering.providerDid, user.access_token, user.id_token);
                 // created contracts
                 const contracts = await connector.getAgreementsByOffering(user.access_token, user.id_token, offeringId);
                 // pending contracts
@@ -38,7 +51,13 @@ export default catchErrors(async (req, res) => {
                         }
                     }
                 }
-                return { ...federateOffering, contracts, pendingContracts, user };
+                return {
+                    ...federateOffering,
+                    contracts,
+                    pendingContracts,
+                    user,
+                    providerRating: providerRating.data.totalRating
+                };
             case 'PATCH':
                 const offering = await connector.getOffering(user.access_token, user.id_token, offeringId);
                 offering.status = 'Active';

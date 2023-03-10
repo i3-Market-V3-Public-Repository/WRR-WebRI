@@ -6,8 +6,8 @@ export default catchErrors(async (req, res) => {
     const user = session.user;
 
     if (user) {
-        const { parameters } = req.query;
-        return await connector.getPrice(user.access_token, user.id_token, parameters);
+        const { forProvider, onTransaction, subRatings, comment } = req.body;
+        return await connector.createRating(user.access_token, user.id_token,user.DID, forProvider, onTransaction, subRatings, comment);
     }
     return null;
 });

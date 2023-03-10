@@ -2,13 +2,14 @@ import { useRouter } from 'next/router';
 import { useState } from 'react';
 import colors from '/lib/colors.js';
 import Dataset from './Dataset.js';
-import { Button, Modal, Row } from 'react-bootstrap';
+import { Button, Col, Modal, Row } from 'react-bootstrap';
 import { Eye, Pencil, Trash } from 'react-bootstrap-icons';
 import Layout from '/components/layout/Layout.js';
 import { getOfferingStatusIcon, ts2date } from '../../../lib/utils';
 import ContractParameters from './ContractParameters';
 import KVCol2 from '../../common/KVCol2';
 import PricingModel from './PricingModel';
+import StarRating from '../../common/StarRating.js';
 
 export default
 function Offering(props) {
@@ -16,7 +17,7 @@ function Offering(props) {
     const { offeringId } = router.query;
     const {
         dataOfferingTitle, dataOfferingDescription, status, ownerConsentForm, active,
-        personalData, inSharedNetwork, category, provider, providerDid, marketId, marketDid,
+        personalData, inSharedNetwork, category, provider, providerDid, providerRating, marketId, marketDid,
         owner, ownerDid, dataOfferingExpirationTime, hasDataset, hasPricingModel, contractParameters,
         contracts = [], pendingContracts = [], user
     } = props;
@@ -51,8 +52,6 @@ function Offering(props) {
             method: 'PATCH',
         }).then(res => {
             router.back();
-        }).catch(error => {
-            console.log('ERROR', error);
         });
     }
 
@@ -65,8 +64,6 @@ function Offering(props) {
             method: 'DELETE',
         }).then(res => {
             router.back();
-        }).catch(error => {
-            console.log('ERROR', error);
         });
     }
 
@@ -89,7 +86,7 @@ function Offering(props) {
 
                         { statusIconEl } <div className="ml-2">{ status }</div>
 
-                        { user.provider ? (
+                        { user.provider && user.DID === providerDid ? (
                             <div className="ml-4 d-flex">
                                 |
                                 <div className="ml-4" title={'Activate Offering'}>
@@ -108,7 +105,7 @@ function Offering(props) {
                     </div>
                 </div>
 
-                { user.provider ? <>
+                { user.provider && user.DID === providerDid ? <>
                     <hr />
                     <div className="d-flex align-items-center">
                         <Button style={{ borderRadius: '8px' }} size="sm" onClick={onViewContracts}>View all Contracts</Button>
@@ -127,15 +124,19 @@ function Offering(props) {
                     <KVCol2 title="Provider">
                         { provider }
                     </KVCol2>
-                    <KVCol2 title="Market">
-                        { marketId }
-                    </KVCol2>
                     <KVCol2 title="Owner">
                         { owner }
                     </KVCol2>
+                    <Col className="text-center p-2">
+                        <StarRating title="Provider Rating" rating={ providerRating.roundedRating }>
+                        </StarRating>
+                    </Col>
                 </Row>
 
                 <Row className="text-center mb-3">
+                    <KVCol2 title="Market">
+                        { marketId }
+                    </KVCol2>
                     <KVCol2 title="Category">
                         { category }
                     </KVCol2>

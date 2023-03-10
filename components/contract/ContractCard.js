@@ -1,12 +1,14 @@
 import { Card, Col } from 'react-bootstrap';
 import { capitalize, ISOtoDate, secondsToDate } from '../../lib/utils';
 import { useRouter } from 'next/router';
+import StarRating from '../common/StarRating';
+import { getAverage } from '../../lib/utils';
 
 export default function ContractCard(props) {
     const router = useRouter();
     const {
         agreementId, dataOffering, state, stateValue, agreementDates,
-        id, data, dateCreated, user, provider
+        id, data, dateCreated, user, provider, rating, isRated
     } = props;
 
     function onClick() {
@@ -45,13 +47,16 @@ export default function ContractCard(props) {
                             Status: {getStatus()}
                         </div>
 
-                        <div className="d-flex mt-3">
+                        <div className="d-flex mt-3 align-items-center">
                             <div className="flex-grow-1">
                                 {getProvider()}
                             </div>
-                            {/*<Button size='sm' style={{borderRadius: 10}}> Rating </Button>*/}
-                        </div>
+                            {(isRated)
+                                ? <StarRating rating={ getAverage(rating.subRatings) } style={{ marginTop: '-5px', paddingRight:'8px' }}></StarRating>
+                                : <>Rating: Not rated</>
+                            }
 
+                        </div>
                     </Card.Body>
 
                     { agreementDates
