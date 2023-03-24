@@ -16,7 +16,7 @@ export default catchErrors(async (req, res) => {
             consumerMPAddress: consumerMPAddress
         }
 
-        return await connector.payMarketFee(user.access_token, user.id_token, 'http://95.211.3.244:3100', 92, bodyRequest);
+        return await connector.payMarketFee(user.access_token, user.id_token, dataAccessEndpoint, agreementId, bodyRequest);
     }
     return null;
 });

@@ -79,23 +79,30 @@ export default function ContractPage() {
     }
 
     async function getBlockData(wallet, user, consumerPublicKey, dataAccessEndpoint, dataSharingAgreement) {
-        const bearerToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwLjAuMC4wIiwiYXVkIjoiMC4wLjAuMCIsImV4cCI6MTY2ODY5MDcyNiwic3ViIjoiZGlkOmV0aHI6aTNtOjB4MDNlZGRjYzU0YmZiZGNlNGZiZDU5OGY0ODI3MzUxZmViMjMxMGQwMDVmYjFkNTMxNDVlNjc4N2QwYTZmN2IwZjVmIiwic2NvcGUiOiJvcGVuaWQgdmMgdmNlOmNvbnN1bWVyIiwiaWF0IjoxNjY4NjA0MzI2fQ.xnGXN3H754Hz1Y7bdJgmxTxSY59imspJLDmTwq6VUkQ';
-        const agreementId = 17;
-        const data = 'exampledata.7z';
-        let blockId = 'null';
-        let blockAck = 'null';
+        // get files
 
-        const dataExchangeAgreement = dataSharingAgreement.dataExchangeAgreement;
-        console.log('DataExchangeAgreement', dataExchangeAgreement);
 
-        // DLT agent providing read connection to the ledger
-        const consumerDltAgent = new I3mWalletAgentDest(wallet, user.DID);
-        console.log('Consumer DLT Agent', consumerDltAgent);
 
-        // retrieve consumer private key from the wallet
-        const consumerKeys = await wallet.resources.list({ type: 'KeyPair', identity: user.DID });
-        const consumerPrivateKey = consumerKeys.find(res => res.resource.keyPair.publicJwk === consumerPublicKey).resource.keyPair.privateJwk;
-        console.log('Consumer Private Key', consumerPrivateKey);
+
+
+
+        // const bearerToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwLjAuMC4wIiwiYXVkIjoiMC4wLjAuMCIsImV4cCI6MTY2ODY5MDcyNiwic3ViIjoiZGlkOmV0aHI6aTNtOjB4MDNlZGRjYzU0YmZiZGNlNGZiZDU5OGY0ODI3MzUxZmViMjMxMGQwMDVmYjFkNTMxNDVlNjc4N2QwYTZmN2IwZjVmIiwic2NvcGUiOiJvcGVuaWQgdmMgdmNlOmNvbnN1bWVyIiwiaWF0IjoxNjY4NjA0MzI2fQ.xnGXN3H754Hz1Y7bdJgmxTxSY59imspJLDmTwq6VUkQ';
+        // const agreementId = 17;
+        // const data = 'exampledata.7z';
+        // let blockId = 'null';
+        // let blockAck = 'null';
+        //
+        // const dataExchangeAgreement = dataSharingAgreement.dataExchangeAgreement;
+        // console.log('DataExchangeAgreement', dataExchangeAgreement);
+        //
+        // // DLT agent providing read connection to the ledger
+        // const consumerDltAgent = new I3mWalletAgentDest(wallet, user.DID);
+        // console.log('Consumer DLT Agent', consumerDltAgent);
+        //
+        // // retrieve consumer private key from the wallet
+        // const consumerKeys = await wallet.resources.list({ type: 'KeyPair', identity: user.DID });
+        // const consumerPrivateKey = consumerKeys.find(res => res.resource.keyPair.publicJwk === consumerPublicKey).resource.keyPair.privateJwk;
+        // console.log('Consumer Private Key', consumerPrivateKey);
     }
 
     function showModal() {
