@@ -22,6 +22,7 @@ export default function NotificationCard(props) {
     const [ offering, setOffering ] = useState('');
     const [ msg, setMsg] = useState(data.msg);
     const [ showLoading, setShowLoading] = useState(false);
+    const [ loadingMsg, setLoadingMsg] = useState('');
     const dataSharingAgreement = data.dataSharingAgreement;
 
     // decrypt notification message
@@ -95,13 +96,11 @@ export default function NotificationCard(props) {
 
     async function onSign(e) {
         e.preventDefault();
-        setShowLoading(true);
         await consumerSign();
     }
 
     async function onCreate(e) {
         e.preventDefault();
-        setShowLoading(true);
         await providerCreateAgreement();
     }
 
@@ -199,14 +198,7 @@ export default function NotificationCard(props) {
                         Sign Agreement
                     </Modal.Header>
                     <Modal.Body>
-                        <div className="d-flex flex-column">
-                            <div>Do you want to confirm the purchase for offering <strong>{offering}</strong>?</div>
-                            { showLoading
-                                ? <div className="d-flex justify-content-center text-lightgray">
-                                    <Spinner className="" style={{ width: '5rem', height:'5rem' }} animation="border" />
-                                </div> : null
-                            }
-                        </div>
+                        Do you want to confirm the purchase for offering <strong>{offering}</strong>?
                     </Modal.Body>
                     <Modal.Footer>
                         <Button variant="secondary" onClick={() => setShowSign(false)}>
@@ -228,8 +220,10 @@ export default function NotificationCard(props) {
                         <div className="d-flex flex-column">
                             <div>Do you want to create the agreement for offering <strong>{offering}</strong>?</div>
                             { showLoading
-                                ? <div className="d-flex justify-content-center text-lightgray">
-                                    <Spinner className="" style={{ width: '5rem', height:'5rem' }} animation="border" />
+                                ? <div className="d-flex flex-column justify-content-center align-items-center text-lightgray my-2">
+                                    <Spinner className="mb-2" style={{ width: '4rem', height:'4rem' }} animation="border" />
+
+                                    { loadingMsg }
                                 </div> : null
                             }
                         </div>
@@ -366,6 +360,10 @@ export default function NotificationCard(props) {
                         const signTransaction = await wallet.identities.sign({ did: props.user.DID }, { type: 'Transaction', data: rawTransaction });
                         console.log('Sign RawTransaction', signTransaction);
 
+                        setLoadingMsg('Deploying Transaction...');
+
+                        setShowLoading(true);
+
                         fetch('/api/offering/deployTransaction', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -374,8 +372,10 @@ export default function NotificationCard(props) {
                             res.json().then(deployRes => {
                                 console.log('Transaction deployed', deployRes);
 
+                                setLoadingMsg('Publishing Agreement to Data Access...');
+
                                 // publish agreement to Data Access
-                                fetch('/api/offering/publishAgreement', {
+                                fetch('/api/dataTransfer/publishAgreement', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
@@ -385,7 +385,20 @@ export default function NotificationCard(props) {
                                     })
                                 }).then(res => {
                                     console.log('Agreement Published in Data Access');
-                                    onDelete();
+
+                                    setLoadingMsg('Registering Batch Connector...');
+
+                                    // register batch connector
+                                    fetch('/api/dataTransfer/registerBatchConnector', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            dataSharingAgreement
+                                        })
+                                    }).then(res => {
+                                        console.log(res);
+                                        onDelete();
+                                    });
                                 });
                             });
                         });

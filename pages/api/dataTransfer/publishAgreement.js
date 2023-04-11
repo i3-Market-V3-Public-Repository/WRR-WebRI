@@ -30,7 +30,7 @@ export default catchErrors(async (req, res) => {
                     };
 
                     // publish dataSharingAgreement to Data Access
-                    await connector.publishDataSharing(user.access_token, user.id_token, dataAccessEndpoint, publishBodyRequest);
+                    return await connector.publishDataSharing(user.access_token, user.id_token, dataAccessEndpoint, publishBodyRequest);
 
                     // TODO batch or stream url
 

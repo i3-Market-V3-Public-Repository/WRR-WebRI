@@ -8,13 +8,11 @@ export default catchErrors(async (req, res) => {
     if (user) {
         const { agreementId, senderAddress, providerMPAddress, consumerMPAddress, dataAccessEndpoint } = req.body;
 
-        console.log(req.body)
-
         const bodyRequest = {
             senderAddress: senderAddress,
             providerMPAddress: providerMPAddress,
             consumerMPAddress: consumerMPAddress
-        }
+        };
 
         return await connector.payMarketFee(user.access_token, user.id_token, dataAccessEndpoint, agreementId, bodyRequest);
     }

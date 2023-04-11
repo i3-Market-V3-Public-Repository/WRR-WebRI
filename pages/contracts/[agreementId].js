@@ -1,4 +1,4 @@
-import { Button, Form, Modal } from 'react-bootstrap';
+import { Button, Form, Modal, Spinner } from 'react-bootstrap';
 import RatingInfo from '../../components/contract/RatingInfo';
 import Layout from '../../components/layout/Layout';
 import ContractParameters from '../../components/contract/ContractParameters';
@@ -8,13 +8,15 @@ import { useState } from 'react';
 import { Loading } from '../../components/layout/Loading';
 import Error from '../../components/layout/Error';
 import { walletApi } from '../../lib/walletApi';
-import { NonRepudiationProtocol, I3mWalletAgentDest } from '@i3m/non-repudiation-library';
+import { I3mWalletAgentDest, NonRepudiationProtocol } from '@i3m/non-repudiation-library';
 
 export default function ContractPage() {
     const router = useRouter();
     const { agreementId } = router.query;
     const { data, error, isValidating } = useData(`/api/contracts/${agreementId}`);
     const [ showTransfer, setShowTransfer ] = useState(false);
+    const [ showMsg, setShowMsg ] = useState(false);
+    const [ transferMsg, setTransferMsg ] = useState('');
 
     if (isValidating)
         return <Loading />;
@@ -27,11 +29,14 @@ export default function ContractPage() {
     }
 
     function onTransferClick() {
+
         setShowTransfer(true);
     }
 
     async function onTransfer(e) {
         e.preventDefault();
+        setShowMsg(false);
+        setTransferMsg('');
 
         const { agreementId, consumerPublicKey, offering, user } = data;
 
@@ -49,7 +54,11 @@ export default function ContractPage() {
         // get dataSharingAgreement according to consumerPublicKey in agreement
         const dataSharingAgreement = agreements.find(res => res.resource.keyPair.publicJwk === consumerPublicKey).resource.dataSharingAgreement;
 
+        // get consumerPrivateKey
+        const consumerPrivateKey = JSON.parse(agreements.find(res => res.resource.keyPair.publicJwk === consumerPublicKey).resource.keyPair.privateJwk);
+
         const dataAccessEndpoint = offering.hasDataset.distribution[0].accessService.endpointURL;
+
         if (dataAccessEndpoint) {
             // validate market fee
             fetch('/api/dataTransfer/payMarketFee', {
@@ -63,13 +72,31 @@ export default function ContractPage() {
                     dataAccessEndpoint: dataAccessEndpoint
                 }),
             }).then(res => {
-                res.json().then(async pay => {
-                    // fee is 0, don't need to pay to market a fee
-                    if (pay.name === 'OK') {
-                        await getBlockData(wallet, user, consumerPublicKey, dataAccessEndpoint, dataSharingAgreement);
-                    }
-                    // TODO other cases
+                res.json().then(async payObj => {
+                    console.log(payObj);
+                    if (payObj.name === 'OK') {
+                        await getBlockData(wallet, user, consumerPrivateKey, consumerPublicKey, dataAccessEndpoint, dataSharingAgreement, agreementId);
+                    } else {
+                        const { transactionObject } = payObj;
 
+                        const signTransaction = await wallet.identities.sign({ did: user.DID }, { type: 'Transaction', data: transactionObject });
+                        console.log('Sign RawTransaction', signTransaction);
+
+                        fetch('/api/dataTransfer/deployTransaction', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                agreementId,
+                                dataAccessEndpoint,
+                                signTransaction
+                            })
+                        }).then(res => {
+                            res.json().then(async deployRes => {
+                                console.log('Payment transaction deployed', deployRes);
+                                await getBlockData(wallet, user, consumerPrivateKey, consumerPublicKey, dataAccessEndpoint, dataSharingAgreement, agreementId);
+                            });
+                        });
+                    }
                 });
             });
         } else {
@@ -78,31 +105,142 @@ export default function ContractPage() {
         }
     }
 
-    async function getBlockData(wallet, user, consumerPublicKey, dataAccessEndpoint, dataSharingAgreement) {
+    async function getBlockData(wallet, user, consumerPrivateKey, consumerPublicKey, dataAccessEndpoint, dataSharingAgreement, agreementId) {
+        const offeringId = dataSharingAgreement.dataOfferingDescription.dataOfferingId;
+
         // get files
+        fetch('/api/dataTransfer/listDataSourceFiles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                offeringId,
+                dataAccessEndpoint
+            }),
+        }).then(res => {
+            res.json().then(async files => {
+                if (files && files.length > 0) {
 
+                    const data = files[0];
 
+                    fetch('/api/dataTransfer/batchData',{
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify( {
+                            data,
+                            agreementId,
+                            dataAccessEndpoint
+                        })
+                    }).then(res => {
+                        res.json().then(async content => {
+                            console.log('Content', content);
 
+                            const dataExchangeAgreement = dataSharingAgreement.dataExchangeAgreement;
+                            //
+                            const consumerDltAgent = new I3mWalletAgentDest(wallet, user.DID);
+                            //
+                            let check_eof = true;
+                            //
+                            // // let stream = fs.createWriteStream(`./${data}`, { flags: 'a' });
+                            //
+                            // while (check_eof) {
 
+                            fetch('/api/dataTransfer/batchData',{
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify( {
+                                    data,
+                                    agreementId,
+                                    dataAccessEndpoint,
+                                    blockId: content.nextBlockId,
+                                    blockAck: content.blockId
+                                })
+                            }).then(async res => {
 
+                                if (res.status === 200) {
+                                    res.json().then(async content => {
 
-        // const bearerToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwLjAuMC4wIiwiYXVkIjoiMC4wLjAuMCIsImV4cCI6MTY2ODY5MDcyNiwic3ViIjoiZGlkOmV0aHI6aTNtOjB4MDNlZGRjYzU0YmZiZGNlNGZiZDU5OGY0ODI3MzUxZmViMjMxMGQwMDVmYjFkNTMxNDVlNjc4N2QwYTZmN2IwZjVmIiwic2NvcGUiOiJvcGVuaWQgdmMgdmNlOmNvbnN1bWVyIiwiaWF0IjoxNjY4NjA0MzI2fQ.xnGXN3H754Hz1Y7bdJgmxTxSY59imspJLDmTwq6VUkQ';
-        // const agreementId = 17;
-        // const data = 'exampledata.7z';
-        // let blockId = 'null';
-        // let blockAck = 'null';
-        //
-        // const dataExchangeAgreement = dataSharingAgreement.dataExchangeAgreement;
-        // console.log('DataExchangeAgreement', dataExchangeAgreement);
-        //
-        // // DLT agent providing read connection to the ledger
-        // const consumerDltAgent = new I3mWalletAgentDest(wallet, user.DID);
-        // console.log('Consumer DLT Agent', consumerDltAgent);
-        //
-        // // retrieve consumer private key from the wallet
-        // const consumerKeys = await wallet.resources.list({ type: 'KeyPair', identity: user.DID });
-        // const consumerPrivateKey = consumerKeys.find(res => res.resource.keyPair.publicJwk === consumerPublicKey).resource.keyPair.privateJwk;
-        // console.log('Consumer Private Key', consumerPrivateKey);
+                                        if (content.poo !== 'null') {
+
+                                            const poo = content.poo;
+
+                                            const npConsumer = new NonRepudiationProtocol.NonRepudiationDest(dataExchangeAgreement, consumerPrivateKey, consumerDltAgent);
+
+                                            await npConsumer.verifyPoO(poo, content.cipherBlock);
+                                            console.log('The poo is valid');
+
+                                            // Store PoO in wallet
+                                            await wallet.resources.create({
+                                                type: 'NonRepudiationProof',
+                                                resource: poo
+                                            });
+
+                                            const por = await npConsumer.generatePoR();
+                                            console.log('The por is: ' + JSON.stringify(por));
+
+                                            // Store PoR in wallet
+                                            await wallet.resources.create({
+                                                type: 'NonRepudiationProof',
+                                                resource: por.jws
+                                            });
+
+                                            fetch('/api/dataTransfer/requestPop',{
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify( {
+                                                    dataAccessEndpoint,
+                                                    por
+                                                })
+                                            }).then(res => {
+                                                if (res.status === 200) {
+                                                    res.json().then(async res => {
+                                                        console.log('The pop is: ' + JSON.stringify(res));
+
+                                                        await npConsumer.verifyPoP(res.pop);
+
+                                                        // Store PoP in wallet
+                                                        await wallet.resources.create({
+                                                            type: 'NonRepudiationProof',
+                                                            resource: res.pop
+                                                        });
+
+                                                        const decryptedBlock = await npConsumer.decrypt();
+                                                        console.log(decryptedBlock);
+
+                                                        // TODO save in stream
+
+                                                    });
+                                                }
+                                                else {
+                                                    check_eof = false;
+                                                    console.log(res);
+                                                    setShowMsg(true);
+                                                    setTransferMsg('Error: ' + res.statusText);
+                                                }
+                                            });
+
+                                            check_eof = false;
+
+                                        }
+
+                                    });
+                                }
+                                else {
+                                    check_eof = false;
+                                    console.log(res);
+                                    setShowMsg(true);
+                                    setTransferMsg('Error: ' + res.statusText);
+                                }
+
+                            });
+
+                            // }
+
+                        });
+                    });
+                }
+
+            });
+        });
     }
 
     function showModal() {
@@ -113,7 +251,15 @@ export default function ContractPage() {
                         Transfer Data
                     </Modal.Header>
                     <Modal.Body>
-                        Do you want to transfer the data ?
+                        <div className="d-flex flex-column">
+                            <div>Do you want to transfer the data ?</div>
+                            { showMsg
+                                ? <div className="my-2 text-danger">
+
+                                    { transferMsg }
+                                </div> : null
+                            }
+                        </div>
                     </Modal.Body>
                     <Modal.Footer>
                         <Button variant="secondary" onClick={() => setShowTransfer(false)}>

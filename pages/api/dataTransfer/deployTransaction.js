@@ -6,12 +6,9 @@ export default catchErrors(async (req, res) => {
     const user = session.user;
 
     if (user) {
-        const { agreementId, dataAccessEndpoint, data, blockId = 'null', blockAck = 'null' } = req.body;
-
-        return await connector.downloadBatchData(user.access_token, user.id_token, dataAccessEndpoint, agreementId, data, {
-            blockId,
-            blockAck
-        });
+        const { agreementId, dataAccessEndpoint, signTransaction } = req.body;
+        return await connector.deployRawPaymentTransaction(user.access_token, user.id_token, dataAccessEndpoint, agreementId, { serializedTx: signTransaction.signature });
     }
     return null;
+
 });

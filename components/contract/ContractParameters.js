@@ -2,14 +2,14 @@ import { Col, Form, Row } from 'react-bootstrap';
 import { getAgreementDateValue } from '../../lib/utils';
 import { useState } from 'react';
 import CustomLabel from '../common/CustomLabel';
-import moment from 'moment/moment';
+import moment from 'moment';
 
 export default function ContractParameters(props) {
     const {
         dataExchangeAgreement, dataOfferingDescription, duration, intendedUse,
         licenseGrant, parties, personalData, pricingModel, purpose, signatures,
         offering, user, disableInput, isAgreement,
-        dataOffering, agreementDates, stateValue
+        dataOffering, agreementDates, stateValue, dataStream
     } = props;
 
     const [process, setProcessData] = useState(intendedUse.processData);
@@ -50,10 +50,6 @@ export default function ContractParameters(props) {
         startDate = getAgreementDateValue(agreementDates[1]);
         endDate = getAgreementDateValue(agreementDates[2]);
     }
-
-    // check if is batch data or data stream
-    const dataStream = pricingModel.hasPaymentOnSubscription
-        && pricingModel.hasPaymentOnSubscription.hasSubscriptionPrice > 0;
 
     return (
         <>
@@ -132,7 +128,7 @@ export default function ContractParameters(props) {
                 <input type="hidden" name="personalData" defaultValue={personalData} />
             </Form.Group>
 
-            {getPricingModel(pricingModel)}
+            {getPricingModel(pricingModel, dataStream)}
 
             <h5 className="mt-4">Data Stream</h5>
             <hr className="mt-2 mb-4" />
@@ -140,10 +136,7 @@ export default function ContractParameters(props) {
             <Row>
                 <Col className="col-md-6">
                     <Form.Group controlId={'dataStream'}>
-                        <Form.Control as="select" value={dataStream} name={'dataStream'} disabled>
-                            <option value="false">False</option>
-                            <option value="true">True</option>
-                        </Form.Control>
+                        <Form.Control type="text" name="dataStream" defaultValue={dataStream} disabled />
                     </Form.Group>
                 </Col>
             </Row>
@@ -476,27 +469,27 @@ export default function ContractParameters(props) {
     );
 }
 
-function getPricingModel(data) {
+function getPricingModel(pricingModel, dataStream) {
     return (
         <>
             <h5 className="mt-4">Pricing</h5>
             <hr className="mt-2 mb-4" />
 
-            {getBasicPrice(data)}
+            {getBasicPrice(pricingModel, dataStream)}
 
-            {/*{getPaymentOnSubscription(data)}*/}
+            {getPaymentOnSubscription(pricingModel, dataStream)}
 
-            {/*{getFreePrice(data)}*/}
+            {getFreePrice(pricingModel, dataStream)}
         </>
     );
 }
 
-function getBasicPrice(data) {
-    const { pricingModelName, basicPrice, fee, currency, price } = data;
+function getBasicPrice(pricingModel, dataStream) {
+    const { pricingModelName, basicPrice, fee, currency, price } = pricingModel;
 
     const bPrice = basicPrice ? basicPrice : price;
 
-    if (bPrice > 0) {
+    if (bPrice > 0 && !dataStream) {
         return (
             <>
                 <Form.Group controlId="pricingModelName">
@@ -538,28 +531,43 @@ function getBasicPrice(data) {
     return '';
 }
 
-function getPaymentOnSubscription(data) {
-    const { hasPaymentOnSubscription, paymentOnSubscription, price, currency } = data;
+function getPaymentOnSubscription(pricingModel, dataStream) {
 
-    const {
-        paymentOnSubscriptionName, paymentType, timeDuration,
-        description, repeat, hasSubscriptionPrice
-    } = hasPaymentOnSubscription;
+    // return ''
 
-    if (hasSubscriptionPrice > 0) {
+    const { hasPaymentOnSubscription, paymentOnSubscription, price, paymentType, currency } = pricingModel;
+
+    let subscriptionName, type, subscriptionPrice, timeDuration, description, repeat;
+
+    if (hasPaymentOnSubscription) {
+        subscriptionName = hasPaymentOnSubscription.paymentOnSubscriptionName;
+        subscriptionPrice = hasPaymentOnSubscription.hasSubscriptionPrice;
+        type = hasPaymentOnSubscription.paymentType;
+        description = hasPaymentOnSubscription.description;
+        timeDuration = hasPaymentOnSubscription.timeDuration;
+        repeat = hasPaymentOnSubscription.repeat;
+    }
+    else if (paymentOnSubscription) {
+        type = paymentType;
+        subscriptionPrice = price;
+        repeat = paymentOnSubscription.repeat;
+        timeDuration = paymentOnSubscription.timeDuration;
+    }
+
+    if (subscriptionPrice > 0 && dataStream) {
 
         return (
             <>
                 <Form.Group controlId="paymentOnSubscriptionName">
                     <Form.Label>Payment On Subscription Name</Form.Label>
-                    <Form.Control type="text" name="paymentOnSubscriptionName" defaultValue={paymentOnSubscriptionName} disabled />
-                    <input type="hidden" name="paymentOnSubscriptionName" defaultValue={paymentOnSubscriptionName} />
+                    <Form.Control type="text" name="paymentOnSubscriptionName" defaultValue={subscriptionName} disabled />
+                    <input type="hidden" name="paymentOnSubscriptionName" defaultValue={subscriptionName} />
                 </Form.Group>
 
                 <Row>
                     <Col>
                         <Form.Group controlId="paymentOnSubscriptionDescription">
-                            <Form.Label>Payment On Subscription Name</Form.Label>
+                            <Form.Label>Description</Form.Label>
                             <Form.Control type="text" name="paymentOnSubscriptionDescription" defaultValue={description} disabled />
                             <input type="hidden" name="paymentOnSubscriptionDescription" defaultValue={description} />
                         </Form.Group>
@@ -567,8 +575,8 @@ function getPaymentOnSubscription(data) {
                     <Col>
                         <Form.Group controlId="paymentOnSubscriptionType">
                             <Form.Label>Payment Type</Form.Label>
-                            <Form.Control type="text" name="paymentOnSubscriptionType" defaultValue={paymentType} disabled />
-                            <input type="hidden" name="paymentOnSubscriptionType" defaultValue={paymentType} />
+                            <Form.Control type="text" name="paymentOnSubscriptionType" defaultValue={type} disabled />
+                            <input type="hidden" name="paymentOnSubscriptionType" defaultValue={type} />
                         </Form.Group>
                     </Col>
                 </Row>
@@ -577,8 +585,8 @@ function getPaymentOnSubscription(data) {
                     <Col>
                         <Form.Group controlId="paymentOnSubscriptionPrice">
                             <Form.Label>Subscription Price</Form.Label>
-                            <Form.Control type="text" name="paymentOnSubscriptionPrice" defaultValue={hasSubscriptionPrice} disabled />
-                            <input type="hidden" name="paymentOnSubscriptionPrice" defaultValue={hasSubscriptionPrice} />
+                            <Form.Control type="text" name="paymentOnSubscriptionPrice" defaultValue={subscriptionPrice} disabled />
+                            <input type="hidden" name="paymentOnSubscriptionPrice" defaultValue={subscriptionPrice} />
                         </Form.Group>
                     </Col>
                     <Col>
@@ -595,13 +603,6 @@ function getPaymentOnSubscription(data) {
                             <input type="hidden" name="paymentOnSubscriptionTimeDuration" defaultValue={timeDuration} />
                         </Form.Group>
                     </Col>
-                    <Col>
-                        <Form.Group controlId="currency">
-                            <Form.Label>Currency</Form.Label>
-                            <Form.Control type="text" name="currency" defaultValue={currency} disabled />
-                            <input type="hidden" name="currency" defaultValue={currency} />
-                        </Form.Group>
-                    </Col>
                 </Row>
 
                 <hr className="mt-2" />
@@ -611,15 +612,16 @@ function getPaymentOnSubscription(data) {
     return '';
 }
 
-function getFreePrice(data) {
-    const { hasPriceFree } = data.hasFreePrice;
-    if (hasPriceFree) {
+function getFreePrice(pricingModel) {
+    const freePrice = pricingModel.hasFreePrice ? pricingModel.hasFreePrice.hasPriceFree : pricingModel.isFree;
+
+    if (freePrice) {
         return (
             <>
                 <Form.Group controlId="hasFreePrice">
                     <Form.Label>Free Price</Form.Label>
-                    <Form.Control type="text" name="hasFreePrice" defaultValue={hasPriceFree} disabled />
-                    <input type="hidden" name="hasFreePrice" defaultValue={hasPriceFree} />
+                    <Form.Control type="text" name="hasFreePrice" defaultValue={freePrice} disabled />
+                    <input type="hidden" name="hasFreePrice" defaultValue={freePrice} />
                 </Form.Group>
 
                 <hr className="mt-2" />
