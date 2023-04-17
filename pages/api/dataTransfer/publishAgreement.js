@@ -31,17 +31,6 @@ export default catchErrors(async (req, res) => {
 
                     // publish dataSharingAgreement to Data Access
                     return await connector.publishDataSharing(user.access_token, user.id_token, dataAccessEndpoint, publishBodyRequest);
-
-                    // TODO batch or stream url
-
-                    // register connector to Data Access API
-                    const connectorBodyRequest = {
-                        offeringId: offering.dataOfferingId,
-                        description: 'reg',
-                        url: 'http://95.211.3.244:3536',
-                        action: 'register'
-                    };
-                    return await connector.registerConnector(dataAccessEndpoint, connectorBodyRequest);
                 }
             }
         }

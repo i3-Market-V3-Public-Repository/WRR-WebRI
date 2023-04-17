@@ -29,7 +29,7 @@ export default function ContractPage() {
     }
 
     function onTransferClick() {
-
+        setTransferMsg('');
         setShowTransfer(true);
     }
 
@@ -75,6 +75,8 @@ export default function ContractPage() {
                 res.json().then(async payObj => {
                     console.log(payObj);
                     if (payObj.name === 'OK') {
+
+                        console.log('OK');
                         await getBlockData(wallet, user, consumerPrivateKey, consumerPublicKey, dataAccessEndpoint, dataSharingAgreement, agreementId);
                     } else {
                         const { transactionObject } = payObj;
@@ -108,139 +110,141 @@ export default function ContractPage() {
     async function getBlockData(wallet, user, consumerPrivateKey, consumerPublicKey, dataAccessEndpoint, dataSharingAgreement, agreementId) {
         const offeringId = dataSharingAgreement.dataOfferingDescription.dataOfferingId;
 
-        // get files
-        fetch('/api/dataTransfer/listDataSourceFiles', {
+        const dataSourceFiles = await getDataSourceFiles(offeringId, dataAccessEndpoint);
+
+        if (dataSourceFiles) {
+            let blockId = 'null';
+            let blockAck = 'null';
+
+            const data = dataSourceFiles[0];
+
+            const batch = await getBatchData(data, agreementId, dataAccessEndpoint, blockId, blockAck);
+
+            if (batch) {
+                console.log('batch', batch);
+
+                const dataExchangeAgreement = dataSharingAgreement.dataExchangeAgreement;
+                const consumerDltAgent = new I3mWalletAgentDest(wallet, user.DID);
+
+                let check_eof = true;
+
+                while (check_eof) {
+
+                    let content = await getBatchData(data, agreementId, dataAccessEndpoint, blockId, blockAck);
+
+                    if (content.poo !== 'null') {
+                        const poo = content.poo;
+
+                        const npConsumer = new NonRepudiationProtocol.NonRepudiationDest(dataExchangeAgreement, consumerPrivateKey, consumerDltAgent);
+
+                        await npConsumer.verifyPoO(poo, content.cipherBlock);
+                        console.log('The poo is valid');
+
+                        // Store PoO in wallet
+                        await wallet.resources.create({
+                            type: 'NonRepudiationProof',
+                            resource: poo
+                        });
+
+                        const por = await npConsumer.generatePoR();
+                        console.log('The por is: ' + JSON.stringify(por));
+
+                        // Store PoR in wallet
+                        await wallet.resources.create({
+                            type: 'NonRepudiationProof',
+                            resource: por.jws
+                        });
+
+                        const res = await requestPop(dataAccessEndpoint, por);
+                        if (res) {
+                            console.log('The pop is: ' + JSON.stringify(res));
+
+                            await npConsumer.verifyPoP(res.pop);
+
+                            // Store PoP in wallet
+                            await wallet.resources.create({
+                                type: 'NonRepudiationProof',
+                                resource: res.pop
+                            });
+
+                            const decryptedBlock = await npConsumer.decrypt();
+                            console.log(decryptedBlock);
+                        }
+                    }
+
+                    blockId = content.nextBlockId;
+                    blockAck = content.blockId;
+
+                    if (content.nextBlockId === 'null' && blockAck === 'null') {
+                        check_eof = false;
+                        // stream.end()
+                        setShowMsg(false);
+                        setTransferMsg('');
+                        console.log('File imported');
+                    }
+
+                    // end of while
+                }
+            }
+        }
+        return {};
+    }
+
+    async function getDataSourceFiles(offeringId, dataAccessEndpoint) {
+        const res = await fetch('/api/dataTransfer/listDataSourceFiles', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 offeringId,
                 dataAccessEndpoint
             }),
-        }).then(res => {
-            res.json().then(async files => {
-                if (files && files.length > 0) {
-
-                    const data = files[0];
-
-                    fetch('/api/dataTransfer/batchData',{
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify( {
-                            data,
-                            agreementId,
-                            dataAccessEndpoint
-                        })
-                    }).then(res => {
-                        res.json().then(async content => {
-                            console.log('Content', content);
-
-                            const dataExchangeAgreement = dataSharingAgreement.dataExchangeAgreement;
-                            //
-                            const consumerDltAgent = new I3mWalletAgentDest(wallet, user.DID);
-                            //
-                            let check_eof = true;
-                            //
-                            // // let stream = fs.createWriteStream(`./${data}`, { flags: 'a' });
-                            //
-                            // while (check_eof) {
-
-                            fetch('/api/dataTransfer/batchData',{
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify( {
-                                    data,
-                                    agreementId,
-                                    dataAccessEndpoint,
-                                    blockId: content.nextBlockId,
-                                    blockAck: content.blockId
-                                })
-                            }).then(async res => {
-
-                                if (res.status === 200) {
-                                    res.json().then(async content => {
-
-                                        if (content.poo !== 'null') {
-
-                                            const poo = content.poo;
-
-                                            const npConsumer = new NonRepudiationProtocol.NonRepudiationDest(dataExchangeAgreement, consumerPrivateKey, consumerDltAgent);
-
-                                            await npConsumer.verifyPoO(poo, content.cipherBlock);
-                                            console.log('The poo is valid');
-
-                                            // Store PoO in wallet
-                                            await wallet.resources.create({
-                                                type: 'NonRepudiationProof',
-                                                resource: poo
-                                            });
-
-                                            const por = await npConsumer.generatePoR();
-                                            console.log('The por is: ' + JSON.stringify(por));
-
-                                            // Store PoR in wallet
-                                            await wallet.resources.create({
-                                                type: 'NonRepudiationProof',
-                                                resource: por.jws
-                                            });
-
-                                            fetch('/api/dataTransfer/requestPop',{
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify( {
-                                                    dataAccessEndpoint,
-                                                    por
-                                                })
-                                            }).then(res => {
-                                                if (res.status === 200) {
-                                                    res.json().then(async res => {
-                                                        console.log('The pop is: ' + JSON.stringify(res));
-
-                                                        await npConsumer.verifyPoP(res.pop);
-
-                                                        // Store PoP in wallet
-                                                        await wallet.resources.create({
-                                                            type: 'NonRepudiationProof',
-                                                            resource: res.pop
-                                                        });
-
-                                                        const decryptedBlock = await npConsumer.decrypt();
-                                                        console.log(decryptedBlock);
-
-                                                        // TODO save in stream
-
-                                                    });
-                                                }
-                                                else {
-                                                    check_eof = false;
-                                                    console.log(res);
-                                                    setShowMsg(true);
-                                                    setTransferMsg('Error: ' + res.statusText);
-                                                }
-                                            });
-
-                                            check_eof = false;
-
-                                        }
-
-                                    });
-                                }
-                                else {
-                                    check_eof = false;
-                                    console.log(res);
-                                    setShowMsg(true);
-                                    setTransferMsg('Error: ' + res.statusText);
-                                }
-
-                            });
-
-                            // }
-
-                        });
-                    });
-                }
-
-            });
         });
+        if (res.status === 200) {
+            return await res.json();
+        }
+        else {
+            setShowMsg(true);
+            setTransferMsg('Error: ' + res.statusText);
+        }
+    }
+
+    async function getBatchData(data, agreementId, dataAccessEndpoint, blockId, blockAck) {
+        const res = await fetch('/api/dataTransfer/batchData', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                data,
+                agreementId,
+                dataAccessEndpoint,
+                blockId,
+                blockAck
+            })
+        });
+        if (res.status === 200) {
+            return await res.json();
+        }
+        else {
+            setShowMsg(true);
+            setTransferMsg('Error: ' + res.statusText);
+        }
+    }
+
+    async function requestPop(dataAccessEndpoint, por) {
+        const res = await fetch('/api/dataTransfer/requestPop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                dataAccessEndpoint,
+                por
+            })
+        });
+        if (res.status === 200) {
+            return await res.json();
+        }
+        else {
+            setShowMsg(true);
+            setTransferMsg('Error: ' + res.statusText);
+        }
     }
 
     function showModal() {
