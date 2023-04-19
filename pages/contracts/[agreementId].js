@@ -128,6 +128,10 @@ export default function ContractPage() {
 
                 let check_eof = true;
 
+                // initiate stream
+
+                let blockData = [];
+
                 while (check_eof) {
 
                     let content = await getBatchData(data, agreementId, dataAccessEndpoint, blockId, blockAck);
@@ -138,7 +142,6 @@ export default function ContractPage() {
                         const npConsumer = new NonRepudiationProtocol.NonRepudiationDest(dataExchangeAgreement, consumerPrivateKey, consumerDltAgent);
 
                         await npConsumer.verifyPoO(poo, content.cipherBlock);
-                        console.log('The poo is valid');
 
                         // Store PoO in wallet
                         await wallet.resources.create({
@@ -147,7 +150,6 @@ export default function ContractPage() {
                         });
 
                         const por = await npConsumer.generatePoR();
-                        console.log('The por is: ' + JSON.stringify(por));
 
                         // Store PoR in wallet
                         await wallet.resources.create({
@@ -157,8 +159,6 @@ export default function ContractPage() {
 
                         const res = await requestPop(dataAccessEndpoint, por);
                         if (res) {
-                            console.log('The pop is: ' + JSON.stringify(res));
-
                             await npConsumer.verifyPoP(res.pop);
 
                             // Store PoP in wallet
@@ -168,7 +168,7 @@ export default function ContractPage() {
                             });
 
                             const decryptedBlock = await npConsumer.decrypt();
-                            console.log(decryptedBlock);
+                            blockData = [...blockData, ...decryptedBlock];
                         }
                     }
 
@@ -177,8 +177,17 @@ export default function ContractPage() {
 
                     if (content.nextBlockId === 'null' && blockAck === 'null') {
                         check_eof = false;
-                        // stream.end()
+                        console.log('Block Data', blockData);
+
+                        // save file
+                        const blob = new Blob(blockData,{ type:'application/json' });
+                        const link = document.createElement('a');
+                        link.href = window.URL.createObjectURL(blob);
+                        link.download = `agreement_${agreementId}.json`;
+                        link.click();
+
                         setShowMsg(false);
+                        setShowTransfer(false);
                         setTransferMsg('');
                         console.log('File imported');
                     }
