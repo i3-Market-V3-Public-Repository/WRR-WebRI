@@ -58,6 +58,12 @@ When choosing the "Login" button in authentication page, you can log in using a 
 After successful login, you will be redirected to the Web-RI homepage:
 ![](public/img/readme-pictures/WEB-RI_home.png)
 
+
+### Data Transfer
+To allow Data Transfer to be working, each data provider must deploy his own Data Access instance and use its endpoint when registering a new offering (in Dataset Distribution part).
+
+And, each data provider must be register his data connector to allow the transfer of the data.
+
 ## Run in Docker
 To run WEB-RI as docker, first you must define the following environment variables in docker-compose.yml file:
 ````yaml

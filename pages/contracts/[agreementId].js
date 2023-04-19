@@ -1,4 +1,4 @@
-import { Button, Form, Modal, Spinner } from 'react-bootstrap';
+import { Button, Form, Modal } from 'react-bootstrap';
 import RatingInfo from '../../components/contract/RatingInfo';
 import Layout from '../../components/layout/Layout';
 import ContractParameters from '../../components/contract/ContractParameters';
@@ -40,8 +40,6 @@ export default function ContractPage() {
 
         const { agreementId, consumerPublicKey, offering, user } = data;
 
-        // TODO transfer data
-
         const wallet = await walletApi();
 
         // retrieve ethereumAddress from wallet
@@ -75,8 +73,6 @@ export default function ContractPage() {
                 res.json().then(async payObj => {
                     console.log(payObj);
                     if (payObj.name === 'OK') {
-
-                        console.log('OK');
                         await getBlockData(wallet, user, consumerPrivateKey, consumerPublicKey, dataAccessEndpoint, dataSharingAgreement, agreementId);
                     } else {
                         const { transactionObject } = payObj;
@@ -121,14 +117,10 @@ export default function ContractPage() {
             const batch = await getBatchData(data, agreementId, dataAccessEndpoint, blockId, blockAck);
 
             if (batch) {
-                console.log('batch', batch);
-
                 const dataExchangeAgreement = dataSharingAgreement.dataExchangeAgreement;
                 const consumerDltAgent = new I3mWalletAgentDest(wallet, user.DID);
 
                 let check_eof = true;
-
-                // initiate stream
 
                 let blockData = [];
 
@@ -143,7 +135,7 @@ export default function ContractPage() {
 
                         await npConsumer.verifyPoO(poo, content.cipherBlock);
 
-                        // Store PoO in wallet
+                        // store PoO in wallet
                         await wallet.resources.create({
                             type: 'NonRepudiationProof',
                             resource: poo
@@ -151,7 +143,7 @@ export default function ContractPage() {
 
                         const por = await npConsumer.generatePoR();
 
-                        // Store PoR in wallet
+                        // store PoR in wallet
                         await wallet.resources.create({
                             type: 'NonRepudiationProof',
                             resource: por.jws
@@ -161,7 +153,7 @@ export default function ContractPage() {
                         if (res) {
                             await npConsumer.verifyPoP(res.pop);
 
-                            // Store PoP in wallet
+                            // store PoP in wallet
                             await wallet.resources.create({
                                 type: 'NonRepudiationProof',
                                 resource: res.pop
@@ -191,12 +183,13 @@ export default function ContractPage() {
                         setTransferMsg('');
                         console.log('File imported');
                     }
-
-                    // end of while
                 }
             }
         }
-        return {};
+        else {
+            setShowMsg(true);
+            setTransferMsg('Error: Data source files not found');
+        }
     }
 
     async function getDataSourceFiles(offeringId, dataAccessEndpoint) {
