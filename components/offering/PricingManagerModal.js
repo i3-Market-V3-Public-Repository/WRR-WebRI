@@ -5,12 +5,12 @@ import { InfoCircle } from 'react-bootstrap-icons';
 export default function PricingManagerModal(props) {
     const { onClose, onSubmit, eventKey } = props;
 
-    const [cost, setCost] = useState(0);
-    const [estValue, setEstValue] = useState(0);
-    const [dataComp, setDataComp] = useState(0);
-    const [dataAcc, setDataAcc] = useState(0);
-    const [uniq, setUniq] = useState(0);
-    const [rarity, setRarity] = useState(0);
+    const [cost, setCost] = useState('0');
+    const [estValue, setEstValue] = useState('0');
+    const [dataComp, setDataComp] = useState('0');
+    const [dataAcc, setDataAcc] = useState('0');
+    const [uniq, setUniq] = useState('0');
+    const [rarity, setRarity] = useState('0');
     const [price, setPrice] = useState(0);
 
     function onClick() {
@@ -45,7 +45,7 @@ export default function PricingManagerModal(props) {
                             <InfoCircle className="ml-2" />
                         </div>
                         <Form.Control type="number" name={eventKey + 'costOfCollection'} min={0}
-                            value={cost} onChange={e => { setCost(e.target.value); }}/>
+                            value={cost} onChange={e => { setCost(e.target.value.toString()); }}/>
                     </Form.Group>
                 </Col>
                 <Col>
@@ -55,7 +55,7 @@ export default function PricingManagerModal(props) {
                             <InfoCircle className="ml-2" />
                         </div>
                         <Form.Control type="number" name={eventKey + 'estimatedValue'} min={0}
-                            value={estValue} onChange={e => { setEstValue(e.target.value); }}/>
+                            value={estValue} onChange={e => { setEstValue(e.target.value.toString()); }}/>
                     </Form.Group>
                 </Col>
 
@@ -69,7 +69,7 @@ export default function PricingManagerModal(props) {
                             <InfoCircle className="ml-2" />
                         </div>
                         <Form.Control type="number" name={eventKey + 'dataCompleteness'} min={0}
-                            value={dataComp} onChange={e => { setDataComp(e.target.value); }}/>
+                            value={dataComp} onChange={e => { setDataComp(e.target.value.toString()); }}/>
                     </Form.Group>
                 </Col>
                 <Col>
@@ -79,7 +79,7 @@ export default function PricingManagerModal(props) {
                             <InfoCircle className="ml-2" />
                         </div>
                         <Form.Control type="number" name={eventKey + 'dataAccuracy'} min={0}
-                            value={dataAcc} onChange={e => { setDataAcc(e.target.value); }}/>
+                            value={dataAcc} onChange={e => { setDataAcc(e.target.value.toString()); }}/>
                     </Form.Group>
                 </Col>
             </Row>
@@ -92,7 +92,7 @@ export default function PricingManagerModal(props) {
                             <InfoCircle className="ml-2" />
                         </div>
                         <Form.Control type="number" name={eventKey + 'uniqueEntries'} min={0}
-                            value={uniq} onChange={e => { setUniq(e.target.value); }}/>
+                            value={uniq} onChange={e => { setUniq(e.target.value.toString()); }}/>
                     </Form.Group>
                 </Col>
                 <Col>
@@ -102,7 +102,7 @@ export default function PricingManagerModal(props) {
                             <InfoCircle className="ml-2" />
                         </div>
                         <Form.Control type="number" name={eventKey + 'rarity'} min={0}
-                            value={rarity} onChange={e => { setRarity(e.target.value); }}/>
+                            value={rarity} onChange={e => { setRarity(e.target.value.toString()); }}/>
                     </Form.Group>
                 </Col>
             </Row>
@@ -111,7 +111,7 @@ export default function PricingManagerModal(props) {
                 <Col>
                     <div className="d-flex align-items-center">
                         <Button onClick={onClick}>Calculate</Button>
-                        <div className="ml-2">Recommended Price: {Math.round(price)}</div>
+                        <div className="ml-2">Recommended Price: {price.toFixed(2)}</div>
                     </div>
                 </Col>
             </Row>
