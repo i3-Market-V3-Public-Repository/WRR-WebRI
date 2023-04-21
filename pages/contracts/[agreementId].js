@@ -119,6 +119,7 @@ export default function ContractPage() {
             if (batch) {
                 const dataExchangeAgreement = dataSharingAgreement.dataExchangeAgreement;
                 const consumerDltAgent = new I3mWalletAgentDest(wallet, user.DID);
+                const tolerance = 5000; // proof tolerance interval in ms
 
                 let check_eof = true;
 
@@ -133,7 +134,7 @@ export default function ContractPage() {
 
                         const npConsumer = new NonRepudiationProtocol.NonRepudiationDest(dataExchangeAgreement, consumerPrivateKey, consumerDltAgent);
 
-                        await npConsumer.verifyPoO(poo, content.cipherBlock);
+                        await npConsumer.verifyPoO(poo, content.cipherBlock, { tolerance: tolerance });
 
                         // store PoO in wallet
                         await wallet.resources.create({
@@ -151,7 +152,7 @@ export default function ContractPage() {
 
                         const res = await requestPop(dataAccessEndpoint, por);
                         if (res) {
-                            await npConsumer.verifyPoP(res.pop);
+                            await npConsumer.verifyPoP(res.pop, { tolerance: tolerance });
 
                             // store PoP in wallet
                             await wallet.resources.create({
@@ -261,7 +262,6 @@ export default function ContractPage() {
                             <div>Do you want to transfer the data ?</div>
                             { showMsg
                                 ? <div className="my-2 text-danger">
-
                                     { transferMsg }
                                 </div> : null
                             }
