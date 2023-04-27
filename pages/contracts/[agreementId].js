@@ -172,6 +172,7 @@ export default function ContractPage() {
                     if (content.nextBlockId === 'null' && blockAck === 'null') {
                         check_eof = false;
 
+                        // save file
                         const uint8array = new Uint8Array(blockData);
                         const blob = new Blob([uint8array.buffer], { type:'application/x-7z-compressed' });
                         saveAs(blob, filename);
