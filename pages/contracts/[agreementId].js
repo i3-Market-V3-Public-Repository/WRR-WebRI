@@ -174,7 +174,7 @@ export default function ContractPage() {
 
                         // save file
                         const uint8array = new Uint8Array(blockData);
-                        const blob = new Blob([uint8array.buffer], { type:'application/x-7z-compressed' });
+                        const blob = new Blob([uint8array.buffer]);
                         saveAs(blob, filename);
 
                         setShowMsg(false);
