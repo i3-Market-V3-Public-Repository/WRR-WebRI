@@ -9,6 +9,7 @@ import { Loading } from '../../components/layout/Loading';
 import Error from '../../components/layout/Error';
 import { walletApi } from '../../lib/walletApi';
 import { I3mWalletAgentDest, NonRepudiationProtocol } from '@i3m/non-repudiation-library';
+import { saveAs } from 'file-saver';
 
 export default function ContractPage() {
     const router = useRouter();
@@ -112,9 +113,9 @@ export default function ContractPage() {
             let blockId = 'null';
             let blockAck = 'null';
 
-            const data = dataSourceFiles[0];
+            const filename = dataSourceFiles[0];
 
-            const batch = await getBatchData(data, agreementId, dataAccessEndpoint, blockId, blockAck);
+            const batch = await getBatchData(filename, agreementId, dataAccessEndpoint, blockId, blockAck);
 
             if (batch) {
                 const dataExchangeAgreement = dataSharingAgreement.dataExchangeAgreement;
@@ -127,7 +128,7 @@ export default function ContractPage() {
 
                 while (check_eof) {
 
-                    let content = await getBatchData(data, agreementId, dataAccessEndpoint, blockId, blockAck);
+                    let content = await getBatchData(filename, agreementId, dataAccessEndpoint, blockId, blockAck);
 
                     if (content.poo !== 'null') {
                         const poo = content.poo;
@@ -136,7 +137,7 @@ export default function ContractPage() {
 
                         await npConsumer.verifyPoO(poo, content.cipherBlock, { tolerance: tolerance });
 
-                        // store PoO in wallet
+                        // save PoO in wallet
                         await wallet.resources.create({
                             type: 'NonRepudiationProof',
                             resource: poo
@@ -144,7 +145,7 @@ export default function ContractPage() {
 
                         const por = await npConsumer.generatePoR();
 
-                        // store PoR in wallet
+                        // save PoR in wallet
                         await wallet.resources.create({
                             type: 'NonRepudiationProof',
                             resource: por.jws
@@ -154,7 +155,7 @@ export default function ContractPage() {
                         if (res) {
                             await npConsumer.verifyPoP(res.pop, { tolerance: tolerance });
 
-                            // store PoP in wallet
+                            // save PoP in wallet
                             await wallet.resources.create({
                                 type: 'NonRepudiationProof',
                                 resource: res.pop
@@ -170,14 +171,10 @@ export default function ContractPage() {
 
                     if (content.nextBlockId === 'null' && blockAck === 'null') {
                         check_eof = false;
-                        console.log('Block Data', blockData);
 
-                        // save file
-                        const blob = new Blob(blockData,{ type:'application/json' });
-                        const link = document.createElement('a');
-                        link.href = window.URL.createObjectURL(blob);
-                        link.download = `agreement_${agreementId}.json`;
-                        link.click();
+                        const uint8array = new Uint8Array(blockData);
+                        const blob = new Blob([uint8array.buffer], { type:'application/x-7z-compressed' });
+                        saveAs(blob, filename);
 
                         setShowMsg(false);
                         setShowTransfer(false);
@@ -211,12 +208,12 @@ export default function ContractPage() {
         }
     }
 
-    async function getBatchData(data, agreementId, dataAccessEndpoint, blockId, blockAck) {
+    async function getBatchData(filename, agreementId, dataAccessEndpoint, blockId, blockAck) {
         const res = await fetch('/api/dataTransfer/batchData', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                data,
+                data: filename,
                 agreementId,
                 dataAccessEndpoint,
                 blockId,
