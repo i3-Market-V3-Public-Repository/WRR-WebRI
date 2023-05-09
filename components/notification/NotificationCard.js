@@ -67,14 +67,14 @@ export default function NotificationCard(props) {
             markNotification(id, 'read', false);
             router.push('/contracts/' + transactionID);
         }
-        else if (user.consumer && action === 'agreement.pending' && origin === 'web-ri') {
+        else if (user.consumer && action === 'agreement.pending') {
             setOffering(dataSharingAgreement.dataOfferingDescription.title);
             setShowSign(true);
         }
-        else if (user.provider && action === 'agreement.pending' && origin === 'web-ri') {
+        else if (user.provider && action === 'agreement.pending') {
             router.push('/offerings/dataPurchaseRequest/' + id);
         }
-        else if (user.provider && action === 'agreement.accepted' && origin === 'web-ri') {
+        else if (user.provider && action === 'agreement.accepted') {
             setOffering(dataSharingAgreement.dataOfferingDescription.title);
             setShowCreateAgreement(true);
         }
