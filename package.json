@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@i3m/non-repudiation-library": "2.5.7",
+    "@i3m/non-repudiation-library": "2.6.4",
     "@i3m/wallet-protocol": "2.5.7",
     "@i3m/wallet-protocol-api": "2.5.7",
     "@i3m/wallet-protocol-utils": "2.5.7",
